@@ -1,88 +1,95 @@
 package main
 
 import (
-	"PA2/imports"
-	"fmt"
+	"bufio"
+	"github.com/mkyas/minichord"
+	"log"
 	"net"
 	"os"
+	"strings"
 )
 
-func Register(port string, conn net.Conn) *minichord.RegistrationResponse {
-	msg := &minichord.MiniChord{
-		Message: &minichord.MiniChord_Registration{
-			Registration: &minichord.Registration{
-				Address: "localhost:" + port,
-			},
-		},
-	}
-
-	err := minichord.SendMiniChordMessage(conn, msg)
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := minichord.ReceiveMiniChordMessage(conn)
-	if err != nil {
-		panic(err)
-	}
-
-	regResponse := resp.GetRegistrationResponse()
-	if regResponse != nil {
-		fmt.Println("Registration succesfully. ID:", regResponse.Result, "Info:", regResponse.Info)
-	} else {
-		fmt.Println("Registration response failed")
-		fmt.Println("Terminating Process")
-		os.Exit(1)
-	}
-	return regResponse
-}
-
-func Deregister(port string, conn net.Conn, regResponse *minichord.RegistrationResponse) {
-	msg := &minichord.MiniChord{
-		Message: &minichord.MiniChord_Deregistration{
-			Deregistration: &minichord.Deregistration{
-				Address: "localhost:" + port,
-				Id:      regResponse.Result,
-			},
-		},
-	}
-	err := minichord.SendMiniChordMessage(conn, msg)
-
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := minichord.ReceiveMiniChordMessage(conn)
-	if err != nil {
-		panic(err)
-	}
-
-	deregResponse := resp.GetRegistrationResponse()
-	if deregResponse != nil {
-		fmt.Println("Deregistration succesfully. ID:", deregResponse.Result, "Info:", deregResponse.Info)
-		fmt.Println("Terminating Process")
-		os.Exit(0)
-	} else {
-		fmt.Println("deregistration response failed")
-		fmt.Println("Terminating Process")
-		os.Exit(1)
+func inputParser() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		scanner.Scan()
+		cmd := strings.ToLower(strings.TrimSpace(scanner.Text()))
+		if cmd == "" {
+			continue
+		}
+		userChan <- cmd
 	}
 }
 
-func Messenger(port string) {
+func RegistrySend(fn func(conn net.Conn) error) {
 	conn, err := net.Dial("tcp", ":"+port)
 	if err != nil {
-		fmt.Println("Listener failed:", err)
-		return
+		log.Fatal("Listener failed:", err)
 	}
 	defer conn.Close()
 
-	regResponse := Register(port, conn)
-	defer Deregister(port, conn, regResponse)
+	if err := fn(conn); err != nil {
+		log.Fatal("Operation failed:", err)
+	}
+}
+
+func RegistryReceive(listener net.Listener) {
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("Connection error:", err)
+			continue
+		}
+
+		msg, err := minichord.ReceiveMiniChordMessage(conn)
+		if err != nil {
+			log.Println("Read failed:", err)
+			return
+		}
+		regChan <- msg
+	}
+}
+
+func Node() {
+	defer wg.Done()
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go RegistryReceive(listener)
+
+	nodeAddr = listener.Addr().String()
+	RegistrySend(HandleRegistration)
+	log.Println("Node listening on:", nodeAddr)
+	for {
+		select {
+		case userCommand := <-userChan:
+			switch userCommand {
+			case "print":
+				return
+			case "exit":
+				RegistrySend(HandleDeregistration)
+				return
+			default:
+				log.Println("Unkown command:", userCommand)
+			}
+		case registryCommand := <-regChan:
+			switch {
+			case registryCommand.GetInitiateTask() != nil:
+				log.Println("Task Received")
+			}
+			return
+		default:
+			continue
+		}
+	}
 }
 
 func main() {
-	port := "2077" // TODO: replace with flag
-	fmt.Println("Starting registry")
-	Messenger(port)
+	log.Println("Starting registry")
+	wg.Add(1)
+	go Node()
+	go inputParser()
+	wg.Wait()
 }

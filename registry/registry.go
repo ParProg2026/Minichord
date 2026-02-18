@@ -1,88 +1,82 @@
 package main
 
 import (
-	"PA2/imports"
+	"bufio"
 	"fmt"
-	"math/rand/v2"
+	"log"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 )
 
-const MAX_ID int32 = 1023
-
-type IDs map[int32]struct{}
-type Nodes map[string]int32
-
-func generateId(usedIDs IDs) int32 {
-	if len(usedIDs) >= int(MAX_ID) {
-		fmt.Println("Exceeded Maximum allowed IDs")
-		fmt.Println("Terminating Registry")
-		os.Exit(1)
+func NodeReceieve(hostPort string) {
+	listener, err := net.Listen("tcp", hostPort)
+	if err != nil {
+		log.Fatal("listener failed:", err)
 	}
 	for {
-		newId := rand.Int32N(MAX_ID + 1)
-		if _, exists := usedIDs[newId]; !exists {
-			usedIDs[newId] = struct{}{}
-			return newId
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Println("Connection failed:", err)
+			return
 		}
+		go handleConnection(conn)
 	}
 }
 
-func Register(hostPort string) {
-	listener, _ := net.Listen("tcp", hostPort)
-	conn, err := listener.Accept()
-	usedIDs := make(IDs)
-	nodes := make(Nodes)
+func NodeSend(addr string, fn func(conn net.Conn, n uint32) error, n uint32) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Fatal("Dial failed:", err)
+	}
+	defer conn.Close()
+
+	if err := fn(conn, n); err != nil {
+		log.Fatal("Operation failed:", err)
+	}
+}
+
+func InputParser() {
+	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		if err != nil {
-			fmt.Println("listener failed:", err)
-			return
+		scanner.Scan()
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
 		}
-		defer conn.Close()
-
-		msg, err := minichord.ReceiveMiniChordMessage(conn)
-		if err != nil {
-			fmt.Println("Read failed:", err)
-			return
-		}
-
-		reg := msg.GetRegistration()
-		if reg != nil {
-			println("Detected node:", reg.Address)
-			newId := generateId(usedIDs)
-			nodes[reg.Address] = newId
-			resp := &minichord.MiniChord{
-				Message: &minichord.MiniChord_RegistrationResponse{
-					RegistrationResponse: &minichord.RegistrationResponse{
-						Result: newId,
-						Info:   "Node added to the registry",
-					},
-				},
+		switch fields[0] {
+		case "list":
+			for addr, id := range nodes {
+				fmt.Printf("hostname:port : %s | Id : %d\n", addr, id)
 			}
-			_ = minichord.SendMiniChordMessage(conn, resp)
-		}
-
-		dereg := msg.GetDeregistration()
-		if dereg != nil {
-			nodeId := nodes[dereg.Address]
-			println("Node:", nodeId, "Requests dergistration")
-			resp := &minichord.MiniChord{
-				Message: &minichord.MiniChord_DeregistrationResponse{
-					DeregistrationResponse: &minichord.DeregistrationResponse{
-						Result: nodeId,
-						Info:   "Node removed from registry",
-					},
-				},
+		case "setup":
+			return
+		case "route":
+			return
+		case "start":
+			for addr := range nodes {
+				n, err := strconv.Atoi(fields[1])
+				if err != nil {
+					log.Println("Invalid argument:", fields[1])
+				}
+				go NodeSend(addr, handleTask, uint32(n))
 			}
-			_ = minichord.SendMiniChordMessage(conn, resp)
-			delete(nodes, dereg.Address)
-			delete(usedIDs, nodeId)
+		case "exit":
+			wg.Done()
+			return
+		default:
+			log.Println("Unkown command:", fields[0])
 		}
 	}
 }
 
 func main() {
 	hostPort := "localhost:2077" // TODO: Replace with flag
-	fmt.Println("Starting message node")
-	Register(hostPort)
+	log.Println("Starting message node")
+	wg.Add(1)
+	go NodeReceieve(hostPort)
+	go InputParser()
+	wg.Wait()
 }
