@@ -2,11 +2,12 @@ package main
 
 import (
 	"bufio"
-	"github.com/mkyas/minichord"
 	"log"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/mkyas/minichord"
 )
 
 func inputParser() {
@@ -67,19 +68,23 @@ func Node() {
 		case userCommand := <-userChan:
 			switch userCommand {
 			case "print":
-				return
 			case "exit":
 				RegistrySend(HandleDeregistration)
 				return
 			default:
-				log.Println("Unkown command:", userCommand)
+				log.Println("Unknown command:", userCommand)
 			}
 		case registryCommand := <-regChan:
 			switch {
 			case registryCommand.GetInitiateTask() != nil:
-				log.Println("Task Received")
+				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
+
+			case registryCommand.GetNodeRegistry() != nil:
+				log.Println("Node Registry Received")
+				for _, node := range registryCommand.GetNodeRegistry().Peers {
+					log.Println("Node:", node.Address, "ID:", node.Id)
+				}
 			}
-			return
 		default:
 			continue
 		}

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/mkyas/minichord"
 	"log"
 	"net"
 	"os"
+
+	"github.com/mkyas/minichord"
 )
 
 func HandleRegistration(conn net.Conn) error {
@@ -41,7 +42,7 @@ func HandleDeregistration(conn net.Conn) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_Deregistration{
 			Deregistration: &minichord.Deregistration{
-				Address: "localhost:" + port,
+				Address: nodeAddr,
 				Id:      regResponse.Result,
 			},
 		},

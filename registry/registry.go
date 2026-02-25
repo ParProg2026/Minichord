@@ -37,6 +37,18 @@ func NodeSend(addr string, fn func(conn net.Conn, n uint32) error, n uint32) {
 	}
 }
 
+func NodeSend2(addr string, fn func(conn net.Conn, p int32, nr uint32) error, p int32, nr uint32) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Fatal("Dial failed:", err)
+	}
+	defer conn.Close()
+
+	if err := fn(conn, p, nr); err != nil {
+		log.Fatal("Operation failed:", err)
+	}
+}
+
 func InputParser() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -48,15 +60,21 @@ func InputParser() {
 		}
 		switch fields[0] {
 		case "list":
-			for addr, id := range nodes {
+			for id, addr := range nodes {
 				fmt.Printf("hostname:port : %s | Id : %d\n", addr, id)
 			}
 		case "setup":
-			return
+			for id, addr := range nodes {
+				n, err := strconv.Atoi(fields[1])
+				if err != nil {
+					log.Println("Invalid argument:", fields[1])
+				}
+				go NodeSend2(addr, sendFinger, id, uint32(n))
+			}
 		case "route":
 			return
 		case "start":
-			for addr := range nodes {
+			for _, addr := range nodes {
 				n, err := strconv.Atoi(fields[1])
 				if err != nil {
 					log.Println("Invalid argument:", fields[1])

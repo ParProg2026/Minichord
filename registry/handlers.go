@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/mkyas/minichord"
 	"log"
 	"math/rand/v2"
 	"net"
 	"os"
+	"slices"
+
+	"github.com/mkyas/minichord"
 )
 
 func handleTask(conn net.Conn, n uint32) error {
@@ -13,6 +15,45 @@ func handleTask(conn net.Conn, n uint32) error {
 		Message: &minichord.MiniChord_InitiateTask{
 			InitiateTask: &minichord.InitiateTask{
 				Packets: n,
+			},
+		},
+	}
+	return minichord.SendMiniChordMessage(conn, msg)
+}
+
+func sendFinger(conn net.Conn, p int32, nr uint32) error {
+	ids := make([]int32, 0, len(nodes))
+	for v, _ := range nodes {
+		ids = append(ids, v)
+	}
+	slices.Sort(ids)
+
+	fingers := make([]*minichord.Deregistration, 0, nr)
+	for i := range nr {
+		a := p + 1<<i
+		m := ids[0]
+		for _, id := range ids {
+			if id >= a {
+				m = id
+				break
+			}
+		}
+
+		// TODO: need to make sure that p is not contained
+
+		fingers = append(fingers, &minichord.Deregistration{
+			Address: nodes[m],
+			Id:      m,
+		})
+	}
+
+	msg := &minichord.MiniChord{
+		Message: &minichord.MiniChord_NodeRegistry{
+			NodeRegistry: &minichord.NodeRegistry{
+				NR:    nr,
+				Peers: fingers,
+				NoIds: uint32(len(nodes)),
+				Ids:   ids,
 			},
 		},
 	}
@@ -44,16 +85,15 @@ func handleConnection(conn net.Conn) {
 	messageLock.Unlock()
 }
 
-func generateId(usedIDs IDs) int32 {
-	if len(usedIDs) >= int(MAX_ID) {
+func generateId() int32 {
+	if len(nodes) >= int(MAX_ID) {
 		log.Println("Exceeded Maximum allowed IDs")
 		log.Println("Terminating Registry")
 		os.Exit(1)
 	}
 	for {
 		newId := rand.Int32N(MAX_ID + 1)
-		if _, exists := usedIDs[newId]; !exists {
-			usedIDs[newId] = struct{}{}
+		if _, exists := nodes[newId]; !exists {
 			return newId
 		}
 	}
@@ -61,8 +101,8 @@ func generateId(usedIDs IDs) int32 {
 
 func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 	log.Println("Detected node:", reg.Address)
-	newId := generateId(usedIDs)
-	nodes[reg.Address] = newId
+	newId := generateId()
+	nodes[newId] = reg.Address
 	resp := &minichord.MiniChord{
 		Message: &minichord.MiniChord_RegistrationResponse{
 			RegistrationResponse: &minichord.RegistrationResponse{
@@ -71,23 +111,25 @@ func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 			},
 		},
 	}
-	minichord.SendMiniChordMessage(conn, resp)
+	err := minichord.SendMiniChordMessage(conn, resp)
+	if err != nil {
+		delete(nodes, newId)
+		return
+	}
 }
 
 func handleDeregistrationResponse(conn net.Conn, dereg *minichord.Deregistration) {
 	if dereg != nil {
-		nodeId := nodes[dereg.Address]
-		log.Println("Node:", nodeId, "Requests dergistration")
+		log.Println("Node:", dereg.Id, "Requests deregistration")
 		resp := &minichord.MiniChord{
 			Message: &minichord.MiniChord_DeregistrationResponse{
 				DeregistrationResponse: &minichord.DeregistrationResponse{
-					Result: nodeId,
+					Result: dereg.Id,
 					Info:   "Node removed from registry",
 				},
 			},
 		}
 		minichord.SendMiniChordMessage(conn, resp)
-		delete(nodes, dereg.Address)
-		delete(usedIDs, nodeId)
+		delete(nodes, dereg.Id)
 	}
 }
