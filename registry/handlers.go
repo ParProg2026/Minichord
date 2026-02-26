@@ -10,6 +10,7 @@ import (
 	"github.com/mkyas/minichord"
 )
 
+// handleTask command a specific node to begin routing random packets.
 func handleTask(conn net.Conn, n uint32) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_InitiateTask{
@@ -60,6 +61,8 @@ func sendFinger(conn net.Conn, p int32, nr uint32) error {
 	return minichord.SendMiniChordMessage(conn, msg)
 }
 
+// handleConnection processes inbound TCP connections to the registry.
+// It unmarshals the payload and routes it to the specific processing logic.
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
@@ -99,6 +102,7 @@ func generateId() int32 {
 	}
 }
 
+// handleRegistrationResponse assigns a new ID and registers the messenger node.
 func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 	log.Println("Detected node:", reg.Address)
 	newId := generateId()
@@ -118,6 +122,7 @@ func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 	}
 }
 
+// handleDeregistrationResponse removes a previously registered node from the overlay.
 func handleDeregistrationResponse(conn net.Conn, dereg *minichord.Deregistration) {
 	if dereg != nil {
 		log.Println("Node:", dereg.Id, "Requests deregistration")
