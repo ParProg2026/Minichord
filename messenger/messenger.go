@@ -80,7 +80,7 @@ func Node() {
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
 			case registryCommand.GetNodeRegistry() != nil:
-				log.Println("Node Registry Received")
+				log.Println("Node Registry Received, my id is", nodeID)
 				for _, node := range registryCommand.GetNodeRegistry().Peers {
 					log.Println("Node:", node.Address, "ID:", node.Id)
 				}

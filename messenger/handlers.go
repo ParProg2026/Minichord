@@ -29,6 +29,7 @@ func HandleRegistration(conn net.Conn) error {
 
 	regResponse = resp.GetRegistrationResponse()
 	if regResponse != nil {
+		nodeID = regResponse.Result
 		log.Println("Registration succesfully. ID:", regResponse.Result, "Info:", regResponse.Info)
 	} else {
 		log.Println("Registration response failed")

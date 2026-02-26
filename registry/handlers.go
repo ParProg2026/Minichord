@@ -31,16 +31,17 @@ func sendFinger(conn net.Conn, p int32, nr uint32) error {
 
 	fingers := make([]*minichord.Deregistration, 0, nr)
 	for i := range nr {
-		a := p + 1<<i
+		a := p + 1<<i%MAX_ID
 		m := ids[0]
+		if m == p {
+			m = ids[1]
+		}
 		for _, id := range ids {
-			if id >= a {
+			if id != p && id >= a {
 				m = id
 				break
 			}
 		}
-
-		// TODO: need to make sure that p is not contained
 
 		fingers = append(fingers, &minichord.Deregistration{
 			Address: nodes[m],
