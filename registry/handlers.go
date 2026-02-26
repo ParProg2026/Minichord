@@ -80,25 +80,25 @@ func sendFinger(p int32, nr uint32) func(net.Conn) error {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	msg, err := minichord.ReceiveMiniChordMessage(conn)
-	if err != nil {
-		log.Println("Read failed:", err)
-		return
-	}
+	for {
+		msg, err := minichord.ReceiveMiniChordMessage(conn)
+		if err != nil {
+			return
+		}
 
-	messageLock.Lock()
-	switch {
-	case msg.GetRegistration() != nil:
-		reg := msg.GetRegistration()
-		handleRegistrationResponse(conn, reg)
+		messageLock.Lock()
+		switch {
+		case msg.GetRegistration() != nil:
+			reg := msg.GetRegistration()
+			handleRegistrationResponse(conn, reg)
 
-	case msg.GetDeregistration() != nil:
-		dereg := msg.GetDeregistration()
-		handleDeregistrationResponse(conn, dereg)
+		case msg.GetDeregistration() != nil:
+			dereg := msg.GetDeregistration()
+			handleDeregistrationResponse(conn, dereg)
 
-	case msg.GetNodeRegistryResponse() != nil:
-		// TODO messenger reports on the result of establishing connection with others.
-		// do with it whatever you want
+		case msg.GetNodeRegistryResponse() != nil:
+			// TODO messenger reports on the result of establishing connection with others.
+			// do with it whatever you want
 
 	case msg.GetTaskFinished() != nil:
 		startWg.Done()
@@ -115,7 +115,6 @@ func handleConnection(conn net.Conn) {
 	default:
 		log.Printf("Unexpected Message type: %T\n", msg.GetMessage())
 	}
-	messageLock.Unlock()
 }
 
 func generateId() int32 {
