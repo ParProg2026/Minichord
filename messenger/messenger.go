@@ -93,14 +93,14 @@ func Node() {
 			default:
 				log.Println("Unknown command:", userCommand)
 			}
-		case command := <-regChan:
+		case registryCommand := <-regChan:
 			switch {
-			case command.GetInitiateTask() != nil:
-				log.Println("Task Received", command.GetInitiateTask().Packets)
+			case registryCommand.GetInitiateTask() != nil:
+				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
-			case command.GetNodeRegistry() != nil:
+			case registryCommand.GetNodeRegistry() != nil:
 				fingerTable = make([]Finger, 0)
-				for _, node := range command.GetNodeRegistry().Peers {
+				for _, node := range registryCommand.GetNodeRegistry().Peers {
 					fingerTable = append(fingerTable, Finger{Id: node.Id, Addr: node.Address})
 				}
 
@@ -109,14 +109,14 @@ func Node() {
 				// don't know what to report, but hey here you can report something:
 				RegistrySend(HandleRegistryResponse(0))
 
-			case command.GetNodeData() != nil:
-				data := command.GetNodeData()
+			case registryCommand.GetNodeData() != nil:
+				data := registryCommand.GetNodeData()
 				receiveTracker.Add(1)
-				receiveSummation.Add(data.Payload)
+				receiveSummation.Add(int64(data.Payload))
 
 				if data.Destination != nodeID {
 					sendTracker.Add(1)
-					sendSummation.Add(data.Payload)
+					sendSummation.Add(int64(data.Payload))
 
 					next := DetermineNextFinger(data)
 					handleForwardNodeData(next, data)
