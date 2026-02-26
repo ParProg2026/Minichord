@@ -16,7 +16,7 @@ var wg sync.WaitGroup
 var nodeAddr string
 var nodeID int32
 var userChan = make(chan string, 1)
-var regChan = make(chan *minichord.MiniChord, 100)
+var regChan = make(chan *minichord.MiniChord, 10000)
 
 type Finger struct {
 	Id   int32

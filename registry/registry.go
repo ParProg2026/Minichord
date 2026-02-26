@@ -71,7 +71,7 @@ func InputParser() {
 				go NodeSend(addr, handleTask(uint32(n)))
 			}
 			startWg.Wait()
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 
 			summaries = make([]Summary, 0)
 			summaryWg.Add(len(nodes))
