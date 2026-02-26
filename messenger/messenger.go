@@ -38,6 +38,16 @@ func DetermineFinger(data *minichord.NodeData) uint32 {
 	return 1
 }
 
+func MessageConnReceive(conn net.Conn) {
+	for {
+		msg, err := minichord.ReceiveMiniChordMessage(conn)
+		if err != nil {
+			return
+		}
+		regChan <- msg
+	}
+}
+
 func MessageReceive(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -46,12 +56,7 @@ func MessageReceive(listener net.Listener) {
 			continue
 		}
 
-		msg, err := minichord.ReceiveMiniChordMessage(conn)
-		if err != nil {
-			log.Println("Read failed:", err)
-			return
-		}
-		regChan <- msg
+		go MessageConnReceive(conn)
 	}
 }
 
