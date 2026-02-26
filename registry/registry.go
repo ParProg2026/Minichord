@@ -61,6 +61,7 @@ func InputParser() {
 		case "route":
 			return
 		case "start":
+			startWg.Add(len(nodes))
 			for _, addr := range nodes {
 				n, err := strconv.Atoi(fields[1])
 				if err != nil {
@@ -68,11 +69,23 @@ func InputParser() {
 				}
 				go NodeSend(addr, handleTask(uint32(n)))
 			}
+			startWg.Wait()
+
+			summaries = make([]Summary, 0)
+			summaryWg.Add(len(nodes))
+			for _, addr := range nodes {
+				go NodeSend(addr, handleTrafficSummary())
+			}
+			summaryWg.Wait()
+
+			for _, summary := range summaries {
+				log.Println(summary.sendTracker, "\t", summary.receiveTracker, "\t", summary.sendSummation, "\t", summary.receiveSummation)
+			}
 		case "exit":
 			wg.Done()
 			return
 		default:
-			log.Println("Unkown command:", fields[0])
+			log.Println("Unknown command:", fields[0])
 		}
 	}
 }
