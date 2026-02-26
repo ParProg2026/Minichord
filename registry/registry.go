@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func NodeReceieve(hostPort string) {
+func NodeReceive(hostPort string) {
 	listener, err := net.Listen("tcp", hostPort)
 	if err != nil {
 		log.Fatal("listener failed:", err)
@@ -25,26 +25,14 @@ func NodeReceieve(hostPort string) {
 	}
 }
 
-func NodeSend(addr string, fn func(conn net.Conn, n uint32) error, n uint32) {
+func NodeSend(addr string, fn func(conn net.Conn) error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Fatal("Dial failed:", err)
 	}
 	defer conn.Close()
 
-	if err := fn(conn, n); err != nil {
-		log.Fatal("Operation failed:", err)
-	}
-}
-
-func NodeSend2(addr string, fn func(conn net.Conn, p int32, nr uint32) error, p int32, nr uint32) {
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		log.Fatal("Dial failed:", err)
-	}
-	defer conn.Close()
-
-	if err := fn(conn, p, nr); err != nil {
+	if err := fn(conn); err != nil {
 		log.Fatal("Operation failed:", err)
 	}
 }
@@ -68,7 +56,7 @@ func InputParser() {
 				if err != nil {
 					log.Println("Invalid argument:", fields[1])
 				}
-				go NodeSend2(addr, sendFinger, id, uint32(n))
+				go NodeSend(addr, sendFinger(id, uint32(n)))
 			}
 		case "route":
 			return
@@ -78,7 +66,7 @@ func InputParser() {
 				if err != nil {
 					log.Println("Invalid argument:", fields[1])
 				}
-				go NodeSend(addr, handleTask, uint32(n))
+				go NodeSend(addr, handleTask(uint32(n)))
 			}
 		case "exit":
 			wg.Done()
@@ -93,7 +81,7 @@ func main() {
 	hostPort := "localhost:2077" // TODO: Replace with flag
 	log.Println("Starting message node")
 	wg.Add(1)
-	go NodeReceieve(hostPort)
+	go NodeReceive(hostPort)
 	go InputParser()
 	wg.Wait()
 }

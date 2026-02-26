@@ -67,3 +67,22 @@ func HandleDeregistration(conn net.Conn) error {
 	}
 	return nil
 }
+
+func HandleRegistryResponse(s int32) func(net.Conn) error {
+	return func(conn net.Conn) error {
+		msg := &minichord.MiniChord{
+			Message: &minichord.MiniChord_NodeRegistryResponse{
+				NodeRegistryResponse: &minichord.NodeRegistryResponse{
+					Result: s,
+					Info:   "Registered them",
+				},
+			},
+		}
+
+		err := minichord.SendMiniChordMessage(conn, msg)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}

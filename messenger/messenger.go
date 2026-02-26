@@ -83,6 +83,11 @@ func Node() {
 				for _, node := range registryCommand.GetNodeRegistry().Peers {
 					log.Println("Node:", node.Address, "ID:", node.Id)
 				}
+
+				// TODO each messaging node should initiate connections to the nodes that comprise its finger table.
+				// TODO Every messaging node must report to the registry on the status of setting up connections to nodes that are part of its finger table
+				// don't know what to report, but hey here you can report something:
+				RegistrySend(HandleRegistryResponse(0))
 			}
 		}
 	}
