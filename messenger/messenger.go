@@ -34,8 +34,24 @@ func RegistrySend(fn func(conn net.Conn) error) {
 	}
 }
 
-func DetermineFinger(data *minichord.NodeData) uint32 {
-	return 1
+func DetermineNextFinger(data *minichord.NodeData) int32 {
+	dest := data.Destination
+	if dest < nodeID {
+		dest += MAX_ID
+	}
+
+	biggest := fingerTable[0].Id
+	for _, finger := range fingerTable {
+		id := finger.Id
+		if id < nodeID {
+			id += MAX_ID
+		}
+
+		if finger.Id < dest {
+			biggest = finger.Id
+		}
+	}
+	return biggest % MAX_ID
 }
 
 func MessageConnReceive(conn net.Conn) {
@@ -148,7 +164,17 @@ func Node() {
 				RegistrySend(HandleRegistryResponse(0))
 
 			case registryCommand.GetNodeData() != nil:
+				data := registryCommand.GetNodeData()
+				receiveTracker.Add(1)
+				receiveSummation.Add(int64(data.Payload))
 
+				if data.Destination != nodeID {
+					sendTracker.Add(1)
+					sendSummation.Add(int64(data.Payload))
+
+					next := DetermineNextFinger(data)
+					handleForwardNodeData(next, data)
+				}
 			}
 		}
 	}

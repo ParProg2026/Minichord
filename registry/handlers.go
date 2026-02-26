@@ -24,6 +24,15 @@ func handleTask(n uint32) func(net.Conn) error {
 	}
 }
 
+func handleTrafficSummary() func(net.Conn) error {
+	return func(conn net.Conn) error {
+		msg := &minichord.MiniChord{
+			Message: &minichord.MiniChord_RequestTrafficSummary{},
+		}
+		return minichord.SendMiniChordMessage(conn, msg)
+	}
+}
+
 func sendFinger(p int32, nr uint32) func(net.Conn) error {
 	return func(conn net.Conn) error {
 		ids := make([]int32, 0, len(nodes))
@@ -91,10 +100,20 @@ func handleConnection(conn net.Conn) {
 			// TODO messenger reports on the result of establishing connection with others.
 			// do with it whatever you want
 
-		default:
-			log.Printf("Unexpected Message type: %T\n", msg.GetMessage())
-		}
-		messageLock.Unlock()
+	case msg.GetTaskFinished() != nil:
+		startWg.Done()
+	case msg.GetReportTrafficSummary() != nil:
+		summary := msg.GetReportTrafficSummary()
+
+		summaries = append(summaries, Summary{
+			sendTracker:      summary.Sent,
+			receiveTracker:   summary.Received,
+			sendSummation:    summary.TotalSent,
+			receiveSummation: summary.TotalReceived,
+		})
+		summaryWg.Done()
+	default:
+		log.Printf("Unexpected Message type: %T\n", msg.GetMessage())
 	}
 }
 
