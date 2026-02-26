@@ -12,8 +12,7 @@ import (
 
 func inputParser() {
 	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		scanner.Scan()
+	for scanner.Scan() {
 		cmd := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		if cmd == "" {
 			continue
@@ -85,8 +84,6 @@ func Node() {
 					log.Println("Node:", node.Address, "ID:", node.Id)
 				}
 			}
-		default:
-			continue
 		}
 	}
 }

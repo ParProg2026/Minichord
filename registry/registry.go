@@ -51,8 +51,7 @@ func NodeSend2(addr string, fn func(conn net.Conn, p int32, nr uint32) error, p 
 
 func InputParser() {
 	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		scanner.Scan()
+	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
