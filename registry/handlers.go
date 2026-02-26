@@ -100,20 +100,22 @@ func handleConnection(conn net.Conn) {
 			// TODO messenger reports on the result of establishing connection with others.
 			// do with it whatever you want
 
-	case msg.GetTaskFinished() != nil:
-		startWg.Done()
-	case msg.GetReportTrafficSummary() != nil:
-		summary := msg.GetReportTrafficSummary()
+		case msg.GetTaskFinished() != nil:
+			startWg.Done()
+		case msg.GetReportTrafficSummary() != nil:
+			summary := msg.GetReportTrafficSummary()
 
-		summaries = append(summaries, Summary{
-			sendTracker:      summary.Sent,
-			receiveTracker:   summary.Received,
-			sendSummation:    summary.TotalSent,
-			receiveSummation: summary.TotalReceived,
-		})
-		summaryWg.Done()
-	default:
-		log.Printf("Unexpected Message type: %T\n", msg.GetMessage())
+			summaries = append(summaries, Summary{
+				sendTracker:      summary.Sent,
+				receiveTracker:   summary.Received,
+				sendSummation:    summary.TotalSent,
+				receiveSummation: summary.TotalReceived,
+			})
+			summaryWg.Done()
+		default:
+			log.Printf("Unexpected Message type: %T\n", msg.GetMessage())
+		}
+		messageLock.Unlock()
 	}
 }
 

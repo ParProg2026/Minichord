@@ -18,13 +18,13 @@ var nodeID int32
 var userChan = make(chan string, 1)
 var regChan = make(chan *minichord.MiniChord, 100)
 
-
 type Finger struct {
 	Id   int32
 	Addr string
 }
 
 var fingerTable []Finger
+var allNodes []int32
 
 var openConnections map[int32]net.Conn
 

@@ -34,6 +34,14 @@ func RegistrySend(fn func(conn net.Conn) error) {
 	}
 }
 
+func NodeSend(id int32, fn func(conn net.Conn) error) {
+	conn := openConnections[id]
+
+	if err := fn(conn); err != nil {
+		log.Fatal("Operation failed:", err)
+	}
+}
+
 func DetermineNextFinger(data *minichord.NodeData) int32 {
 	dest := data.Destination
 	if dest < nodeID {
@@ -76,28 +84,6 @@ func MessageReceive(listener net.Listener) {
 	}
 }
 
-// getRandomNeighbors returns a randomized subset of the finger table.
-func getRandomNeighbors(table []Finger, n uint32) []Finger {
-	total := uint32(len(table))
-	if total == 0 {
-		return nil
-	}
-
-	count := n
-	if count > total {
-		count = total
-	}
-
-	shuffled := make([]Finger, total)
-	copy(shuffled, table)
-
-	rand.Shuffle(len(shuffled), func(i, j int) {
-		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
-	})
-
-	return shuffled[:count]
-}
-
 func Node() {
 	defer wg.Done()
 	listener, err := net.Listen("tcp", ":0")
@@ -125,15 +111,15 @@ func Node() {
 			switch {
 			case registryCommand.GetInitiateTask() != nil:
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
-				// Open connections to the neighbors
-				numToSelect := max((registryCommand.GetInitiateTask().Packets), uint32(len(fingerTable)))
-				selectedNeighbors := getRandomNeighbors(fingerTable, numToSelect)
 
-				for _, neighbor := range selectedNeighbors {
+				for range registryCommand.GetInitiateTask().Packets {
+					dest := allNodes[rand.Int31n(int32(len(allNodes)))]
+					finger := fingerTable[rand.Int31n(int32(len(fingerTable)))]
+
 					msg := &minichord.MiniChord{
 						Message: &minichord.MiniChord_NodeData{
 							NodeData: &minichord.NodeData{
-								Destination: neighbor.Id,
+								Destination: dest,
 								Source:      nodeID,
 								Payload:     rand.Int31(),
 								Hops:        0,
@@ -142,7 +128,10 @@ func Node() {
 						},
 					}
 
-					minichord.SendMiniChordMessage(openConnections[neighbor.Id], msg)
+					NodeSend(finger.Id, func(conn net.Conn) error {
+						minichord.SendMiniChordMessage(conn, msg)
+						return nil
+					})
 
 					if err != nil {
 						log.Printf("Error while closin connection: %s", err)
@@ -151,6 +140,7 @@ func Node() {
 
 			case registryCommand.GetNodeRegistry() != nil:
 				fingerTable = make([]Finger, 0)
+				allNodes = make([]int32, 0)
 				openConnections = make(map[int32]net.Conn) // Initialize the map
 				for _, node := range registryCommand.GetNodeRegistry().Peers {
 					fingerTable = append(fingerTable, Finger{Id: node.Id, Addr: node.Address})
@@ -160,6 +150,9 @@ func Node() {
 						continue // Skip adding to map if connection failed
 					}
 					openConnections[node.Id] = conn
+				}
+				for _, node := range registryCommand.GetNodeRegistry().Ids {
+					allNodes = append(allNodes, node)
 				}
 				RegistrySend(HandleRegistryResponse(0))
 
@@ -173,7 +166,7 @@ func Node() {
 					sendSummation.Add(int64(data.Payload))
 
 					next := DetermineNextFinger(data)
-					handleForwardNodeData(next, data)
+					NodeSend(next, handleForwardNodeData(next, data))
 				}
 			}
 		}
