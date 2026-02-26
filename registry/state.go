@@ -16,6 +16,7 @@ type Summary struct {
 	id               int32
 	sendTracker      uint32
 	receiveTracker   uint32
+	relayTracker     uint32
 	sendSummation    int64
 	receiveSummation int64
 }

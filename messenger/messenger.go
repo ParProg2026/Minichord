@@ -167,6 +167,7 @@ func Node() {
 
 				if data.Destination != nodeID {
 					next := DetermineNextFinger(data)
+					relayTracker.Add(1)
 					NodeSend(next, handleForwardNodeData(next, data))
 				} else {
 					receiveTracker.Add(1)
@@ -177,6 +178,7 @@ func Node() {
 				RegistrySend(HandleSendSummary)
 				sendTracker.Store(0)
 				receiveTracker.Store(0)
+				relayTracker.Store(0)
 				sendSummation.Store(0)
 				receiveSummation.Store(0)
 			}

@@ -31,5 +31,7 @@ var openConnections map[int32]net.Conn
 var sendTracker atomic.Uint32
 var receiveTracker atomic.Uint32
 
+var relayTracker atomic.Uint32
+
 var sendSummation atomic.Int64
 var receiveSummation atomic.Int64

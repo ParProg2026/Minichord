@@ -109,6 +109,7 @@ func handleConnection(conn net.Conn) {
 				id:               summary.Id,
 				sendTracker:      summary.Sent,
 				receiveTracker:   summary.Received,
+				relayTracker:     summary.Relayed,
 				sendSummation:    summary.TotalSent,
 				receiveSummation: summary.TotalReceived,
 			})

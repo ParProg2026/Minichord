@@ -94,6 +94,7 @@ func HandleSendSummary(conn net.Conn) error {
 				Id:            nodeID,
 				Sent:          sendTracker.Load(),
 				Received:      receiveTracker.Load(),
+				Relayed:       relayTracker.Load(),
 				TotalSent:     sendSummation.Load(),
 				TotalReceived: receiveSummation.Load(),
 			},

@@ -78,17 +78,18 @@ func InputParser() {
 			}
 			summaryWg.Wait()
 
-			log.Println("Id,Sent,Received,Total Sent,Total Received")
+			log.Println("Id,Sent,Received,Relayed,Total Sent,Total Received")
 
 			var send uint32
 			var rec uint32
 			var sendsum int64
 			var recsum int64
 			for _, summary := range summaries {
-				log.Printf("%v,%v,%v,%v,%v\n",
+				log.Printf("%v,%v,%v,%v,%v,%v\n",
 					summary.id,
 					summary.sendTracker,
 					summary.receiveTracker,
+					summary.relayTracker,
 					summary.sendSummation,
 					summary.receiveSummation,
 				)
