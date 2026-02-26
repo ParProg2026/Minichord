@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/mkyas/minichord"
 )
@@ -15,3 +16,16 @@ var nodeAddr string
 var nodeID int32
 var userChan = make(chan string, 1)
 var regChan = make(chan *minichord.MiniChord, 100)
+
+type Finger struct {
+	Id   int32
+	Addr string
+}
+
+var fingerTable []Finger
+
+var sendTracker atomic.Uint32
+var receiveTracker atomic.Uint32
+
+var sendSummation atomic.Uint32
+var receiveSummation atomic.Uint32

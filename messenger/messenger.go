@@ -33,7 +33,11 @@ func RegistrySend(fn func(conn net.Conn) error) {
 	}
 }
 
-func RegistryReceive(listener net.Listener) {
+func DetermineFinger(data *minichord.NodeData) uint32 {
+	return 1
+}
+
+func MessageReceive(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -57,7 +61,7 @@ func Node() {
 		log.Fatal(err)
 	}
 
-	go RegistryReceive(listener)
+	go MessageReceive(listener)
 
 	nodeAddr = listener.Addr().String()
 	RegistrySend(HandleRegistration)
@@ -79,15 +83,18 @@ func Node() {
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
 			case registryCommand.GetNodeRegistry() != nil:
-				log.Println("Node Registry Received, my id is", nodeID)
+				fingerTable = make([]Finger, 0)
 				for _, node := range registryCommand.GetNodeRegistry().Peers {
-					log.Println("Node:", node.Address, "ID:", node.Id)
+					fingerTable = append(fingerTable, Finger{Id: node.Id, Addr: node.Address})
 				}
 
 				// TODO each messaging node should initiate connections to the nodes that comprise its finger table.
 				// TODO Every messaging node must report to the registry on the status of setting up connections to nodes that are part of its finger table
 				// don't know what to report, but hey here you can report something:
 				RegistrySend(HandleRegistryResponse(0))
+
+			case registryCommand.GetNodeData() != nil:
+
 			}
 		}
 	}
