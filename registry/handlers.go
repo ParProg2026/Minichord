@@ -74,7 +74,6 @@ func handleConnection(conn net.Conn) {
 	for {
 		msg, err := minichord.ReceiveMiniChordMessage(conn)
 		if err != nil {
-			log.Println("Read failed:", err)
 			return
 		}
 
