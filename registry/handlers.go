@@ -106,6 +106,7 @@ func handleConnection(conn net.Conn) {
 			summary := msg.GetReportTrafficSummary()
 
 			summaries = append(summaries, Summary{
+				id:               summary.Id,
 				sendTracker:      summary.Sent,
 				receiveTracker:   summary.Received,
 				sendSummation:    summary.TotalSent,

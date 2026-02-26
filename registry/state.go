@@ -13,6 +13,7 @@ var summaryWg sync.WaitGroup
 var nodes = make(Nodes)
 
 type Summary struct {
+	id               int32
 	sendTracker      uint32
 	receiveTracker   uint32
 	sendSummation    int64
