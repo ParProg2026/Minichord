@@ -78,8 +78,9 @@ func InputParser() {
 			}
 			summaryWg.Wait()
 
+			log.Println("Sent\tReceived\t\tTotal Sent\tTotal Received")
 			for _, summary := range summaries {
-				log.Println(summary.sendTracker, "\t", summary.receiveTracker, "\t", summary.sendSummation, "\t", summary.receiveSummation)
+				log.Println(summary.sendTracker, "\t\t", summary.receiveTracker, "\t\t", summary.sendSummation, "\t", summary.receiveSummation)
 			}
 		case "exit":
 			wg.Done()

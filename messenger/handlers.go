@@ -87,6 +87,26 @@ func HandleRegistryResponse(s int32) func(net.Conn) error {
 	}
 }
 
+func HandleSendSummary(conn net.Conn) error {
+	msg := &minichord.MiniChord{
+		Message: &minichord.MiniChord_ReportTrafficSummary{
+			ReportTrafficSummary: &minichord.TrafficSummary{
+				Id:            nodeID,
+				Sent:          sendTracker.Load(),
+				Received:      receiveTracker.Load(),
+				TotalSent:     sendSummation.Load(),
+				TotalReceived: receiveSummation.Load(),
+			},
+		},
+	}
+
+	err := minichord.SendMiniChordMessage(conn, msg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func handleForwardNodeData(next int32, data *minichord.NodeData) func(net.Conn) error {
 	return func(conn net.Conn) error {
 		data.Trace = append(data.Trace, next)
@@ -104,4 +124,18 @@ func handleForwardNodeData(next int32, data *minichord.NodeData) func(net.Conn) 
 		}
 		return nil
 	}
+}
+
+func handleTaskFinished(conn net.Conn) error {
+	msg := &minichord.MiniChord{
+		Message: &minichord.MiniChord_TaskFinished{
+			TaskFinished: &minichord.TaskFinished{},
+		},
+	}
+
+	err := minichord.SendMiniChordMessage(conn, msg)
+	if err != nil {
+		return err
+	}
+	return nil
 }

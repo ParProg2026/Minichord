@@ -142,6 +142,8 @@ func Node() {
 					})
 				}
 
+				RegistrySend(handleTaskFinished)
+
 			case registryCommand.GetNodeRegistry() != nil:
 				fingerTable = make([]Finger, 0)
 				allNodes = make([]int32, 0)
@@ -172,6 +174,13 @@ func Node() {
 					next := DetermineNextFinger(data)
 					NodeSend(next, handleForwardNodeData(next, data))
 				}
+
+			case registryCommand.GetRequestTrafficSummary() != nil:
+				RegistrySend(HandleSendSummary)
+				sendTracker.Store(0)
+				receiveTracker.Store(0)
+				sendSummation.Store(0)
+				receiveSummation.Store(0)
 			}
 		}
 	}
