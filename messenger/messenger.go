@@ -76,7 +76,7 @@ func MessageReceive(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Connection error:", err)
+			log.Println("Connection error:", err)
 			continue
 		}
 
@@ -101,6 +101,12 @@ func Node() {
 		case userCommand := <-userChan:
 			switch userCommand {
 			case "print":
+				log.Printf("============== NODE %d ==============", nodeID)
+				log.Printf("|\tsendTracker: %d\t\t\t\t|", sendTracker.Load())
+				log.Printf("|\trecvTracker: %d\t\t\t\t|", receiveTracker.Load())
+				log.Printf("|\tsendSummation: %d\t\t\t\t|", sendSummation.Load())
+				log.Printf("|\trecvSummation: %d\t\t\t\t|", receiveSummation.Load())
+				log.Printf("=====================================")
 			case "exit":
 				RegistrySend(HandleDeregistration)
 				return
@@ -115,27 +121,25 @@ func Node() {
 				for range registryCommand.GetInitiateTask().Packets {
 					dest := allNodes[rand.Int31n(int32(len(allNodes)))]
 					finger := fingerTable[rand.Int31n(int32(len(fingerTable)))]
-
+					payload := rand.Int31()
 					msg := &minichord.MiniChord{
 						Message: &minichord.MiniChord_NodeData{
 							NodeData: &minichord.NodeData{
 								Destination: dest,
 								Source:      nodeID,
-								Payload:     rand.Int31(),
+								Payload:     payload,
 								Hops:        0,
 								Trace:       []int32{nodeID},
 							},
 						},
 					}
+					sendTracker.Add(1)
+					sendSummation.Add(int64(payload))
 
 					NodeSend(finger.Id, func(conn net.Conn) error {
 						minichord.SendMiniChordMessage(conn, msg)
 						return nil
 					})
-
-					if err != nil {
-						log.Printf("Error while closin connection: %s", err)
-					}
 				}
 
 			case registryCommand.GetNodeRegistry() != nil:
