@@ -164,15 +164,13 @@ func Node() {
 
 			case registryCommand.GetNodeData() != nil:
 				data := registryCommand.GetNodeData()
-				receiveTracker.Add(1)
-				receiveSummation.Add(int64(data.Payload))
 
 				if data.Destination != nodeID {
-					sendTracker.Add(1)
-					sendSummation.Add(int64(data.Payload))
-
 					next := DetermineNextFinger(data)
 					NodeSend(next, handleForwardNodeData(next, data))
+				} else {
+					receiveTracker.Add(1)
+					receiveSummation.Add(int64(data.Payload))
 				}
 
 			case registryCommand.GetRequestTrafficSummary() != nil:

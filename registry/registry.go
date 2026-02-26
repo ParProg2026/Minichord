@@ -78,10 +78,33 @@ func InputParser() {
 			}
 			summaryWg.Wait()
 
-			log.Println("Id\tSent\tReceived\t\tTotal Sent\tTotal Received")
+			log.Println("Id,Sent,Received,Total Sent,Total Received")
+
+			var send uint32
+			var rec uint32
+			var sendsum int64
+			var recsum int64
 			for _, summary := range summaries {
-				log.Println(summary.id, "\t", summary.sendTracker, "\t\t", summary.receiveTracker, "\t\t", summary.sendSummation, "\t", summary.receiveSummation)
+				log.Printf("%v,%v,%v,%v,%v\n",
+					summary.id,
+					summary.sendTracker,
+					summary.receiveTracker,
+					summary.sendSummation,
+					summary.receiveSummation,
+				)
+				send += summary.sendTracker
+				rec += summary.receiveTracker
+				sendsum += summary.sendSummation
+				recsum += summary.receiveSummation
 			}
+
+			log.Println()
+			log.Printf("%v,%v,%v,%v\n",
+				send,
+				rec,
+				sendsum,
+				recsum,
+			)
 		case "exit":
 			wg.Done()
 			return
