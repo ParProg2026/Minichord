@@ -27,5 +27,5 @@ var fingerTable []Finger
 var sendTracker atomic.Uint32
 var receiveTracker atomic.Uint32
 
-var sendSummation atomic.Uint32
-var receiveSummation atomic.Uint32
+var sendSummation atomic.Int32
+var receiveSummation atomic.Int32

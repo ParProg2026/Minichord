@@ -86,3 +86,21 @@ func HandleRegistryResponse(s int32) func(net.Conn) error {
 		return nil
 	}
 }
+
+func handleForwardNodeData(next int32, data *minichord.NodeData) func(net.Conn) error {
+	return func(conn net.Conn) error {
+		data.Trace = append(data.Trace, next)
+
+		msg := &minichord.MiniChord{
+			Message: &minichord.MiniChord_NodeData{
+				NodeData: data,
+			},
+		}
+
+		err := minichord.SendMiniChordMessage(conn, msg)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}

@@ -33,8 +33,24 @@ func RegistrySend(fn func(conn net.Conn) error) {
 	}
 }
 
-func DetermineFinger(data *minichord.NodeData) uint32 {
-	return 1
+func DetermineNextFinger(data *minichord.NodeData) int32 {
+	dest := data.Destination
+	if dest < nodeID {
+		dest += MAX_ID
+	}
+
+	biggest := fingerTable[0].Id
+	for _, finger := range fingerTable {
+		id := finger.Id
+		if id < nodeID {
+			id += MAX_ID
+		}
+
+		if finger.Id < dest {
+			biggest = finger.Id
+		}
+	}
+	return biggest % MAX_ID
 }
 
 func MessageReceive(listener net.Listener) {
@@ -77,14 +93,14 @@ func Node() {
 			default:
 				log.Println("Unknown command:", userCommand)
 			}
-		case registryCommand := <-regChan:
+		case command := <-regChan:
 			switch {
-			case registryCommand.GetInitiateTask() != nil:
-				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
+			case command.GetInitiateTask() != nil:
+				log.Println("Task Received", command.GetInitiateTask().Packets)
 
-			case registryCommand.GetNodeRegistry() != nil:
+			case command.GetNodeRegistry() != nil:
 				fingerTable = make([]Finger, 0)
-				for _, node := range registryCommand.GetNodeRegistry().Peers {
+				for _, node := range command.GetNodeRegistry().Peers {
 					fingerTable = append(fingerTable, Finger{Id: node.Id, Addr: node.Address})
 				}
 
@@ -93,8 +109,18 @@ func Node() {
 				// don't know what to report, but hey here you can report something:
 				RegistrySend(HandleRegistryResponse(0))
 
-			case registryCommand.GetNodeData() != nil:
+			case command.GetNodeData() != nil:
+				data := command.GetNodeData()
+				receiveTracker.Add(1)
+				receiveSummation.Add(data.Payload)
 
+				if data.Destination != nodeID {
+					sendTracker.Add(1)
+					sendSummation.Add(data.Payload)
+
+					next := DetermineNextFinger(data)
+					handleForwardNodeData(next, data)
+				}
 			}
 		}
 	}
