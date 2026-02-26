@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"sync"
 	"sync/atomic"
 
@@ -17,12 +18,15 @@ var nodeID int32
 var userChan = make(chan string, 1)
 var regChan = make(chan *minichord.MiniChord, 100)
 
+
 type Finger struct {
 	Id   int32
 	Addr string
 }
 
 var fingerTable []Finger
+
+var openConnections map[int32]net.Conn
 
 var sendTracker atomic.Uint32
 var receiveTracker atomic.Uint32
