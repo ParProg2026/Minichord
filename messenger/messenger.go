@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/mkyas/minichord"
 )
@@ -144,7 +144,7 @@ func Node() {
 							minichord.SendMiniChordMessage(conn, msg)
 							return nil
 						})
-						time.Sleep(1 * time.Millisecond)
+						runtime.Gosched()
 					}
 
 					RegistrySend(handleTaskFinished)
