@@ -98,6 +98,7 @@ func Node() {
 				log.Printf("============== NODE %d ==============", nodeID)
 				log.Printf("|\tsendTracker: %d\t\t\t\t|", sendTracker.Load())
 				log.Printf("|\trecvTracker: %d\t\t\t\t|", receiveTracker.Load())
+				log.Printf("|\trelayTracker: %d\t\t\t\t|", relayTracker.Load())
 				log.Printf("|\tsendSummation: %d\t\t\t\t|", sendSummation.Load())
 				log.Printf("|\trecvSummation: %d\t\t\t\t|", receiveSummation.Load())
 				log.Printf("=====================================")
