@@ -53,6 +53,7 @@ func InputParser() {
 			}
 		case "setup":
 			allFingers = make(map[int32][]int32)
+			setupWg.Add(len(nodes))
 			for id, addr := range nodes {
 				n, err := strconv.Atoi(fields[1])
 				if err != nil {
@@ -60,6 +61,9 @@ func InputParser() {
 				}
 				go NodeSend(addr, sendFinger(id, uint32(n)))
 			}
+
+			setupWg.Wait()
+			fmt.Println("The registry is now ready to initiate tasks.")
 		case "route":
 			for node, finger := range allFingers {
 				fmt.Printf("Node %d:", node)

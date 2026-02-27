@@ -113,7 +113,13 @@ func Node() {
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
 				for range registryCommand.GetInitiateTask().Packets {
-					dest := allNodes[rand.Int31n(int32(len(allNodes)))]
+					var dest int32
+					for {
+						dest = allNodes[rand.Int31n(int32(len(allNodes)))]
+						if dest != nodeID {
+							break
+						}
+					}
 					finger := fingerTable[rand.Int31n(int32(len(fingerTable)))]
 					payload := rand.Int31()
 					msg := &minichord.MiniChord{

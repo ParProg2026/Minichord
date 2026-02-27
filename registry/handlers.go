@@ -100,9 +100,7 @@ func handleConnection(conn net.Conn) {
 			handleDeregistrationResponse(conn, dereg)
 
 		case msg.GetNodeRegistryResponse() != nil:
-			// TODO messenger reports on the result of establishing connection with others.
-			// do with it whatever you want
-
+			setupWg.Done()
 		case msg.GetTaskFinished() != nil:
 			startWg.Done()
 		case msg.GetReportTrafficSummary() != nil:
