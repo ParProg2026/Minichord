@@ -59,7 +59,7 @@ func InputParser() {
 				if err != nil {
 					log.Println("Invalid argument:", fields[1])
 				}
-				go NodeSend(addr, sendFinger(id, uint32(n)))
+				NodeSend(addr, sendFinger(id, uint32(n)))
 			}
 
 			setupWg.Wait()
