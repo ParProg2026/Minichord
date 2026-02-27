@@ -24,6 +24,7 @@ func handleTask(n uint32) func(net.Conn) error {
 	}
 }
 
+// Request the summary
 func handleTrafficSummary() func(net.Conn) error {
 	return func(conn net.Conn) error {
 		msg := &minichord.MiniChord{
@@ -33,6 +34,7 @@ func handleTrafficSummary() func(net.Conn) error {
 	}
 }
 
+// Generate and send out the finger tables
 func sendFinger(p int32, nr uint32) func(net.Conn) error {
 	return func(conn net.Conn) error {
 		ids := make([]int32, 0, len(nodes))
@@ -44,11 +46,13 @@ func sendFinger(p int32, nr uint32) func(net.Conn) error {
 		fingers := make([]*minichord.Deregistration, 0, nr)
 		fingerIds := make([]int32, 0)
 		for i := range nr {
+			// Step size used in this finger entry
 			a := p + 1<<i%MAX_ID
 			m := ids[0]
 			if m == p {
 				m = ids[1]
 			}
+			// Searcch for the correct node
 			for _, id := range ids {
 				if id != p && id >= a {
 					m = id
@@ -100,10 +104,13 @@ func handleConnection(conn net.Conn) {
 			handleDeregistrationResponse(conn, dereg)
 
 		case msg.GetNodeRegistryResponse() != nil:
+			// Notify the wait group waiting for all registries to be processed
 			setupWg.Done()
 		case msg.GetTaskFinished() != nil:
+			// Notify the wait group waiting for all tasks to be processed
 			startWg.Done()
 		case msg.GetReportTrafficSummary() != nil:
+			// Sum up the traffic summary and notify the wait group
 			summary := msg.GetReportTrafficSummary()
 
 			ex := summaries[summary.Id]
@@ -124,6 +131,8 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
+// Generate the id for a node by generating a random number
+// If the number is already taken we reapeat this process till we find a free one
 func generateId() int32 {
 	if len(nodes) >= int(MAX_ID) {
 		log.Println("Exceeded Maximum allowed IDs")

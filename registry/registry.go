@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Listens to the specified port and accepts new connections
 func NodeReceive(hostPort string) {
 	listener, err := net.Listen("tcp", ":"+hostPort)
 	if err != nil {
@@ -26,6 +27,8 @@ func NodeReceive(hostPort string) {
 	}
 }
 
+// Wrapper to send message to the different nodes
+// Establishes the connection to the given address
 func NodeSend(addr string, fn func(conn net.Conn) error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -38,6 +41,7 @@ func NodeSend(addr string, fn func(conn net.Conn) error) {
 	}
 }
 
+// Responsible for parsing all the user input
 func InputParser() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -62,9 +66,11 @@ func InputParser() {
 				NodeSend(addr, sendFinger(id, uint32(n)))
 			}
 
+			// Wait till all the nodes processed the setup
 			setupWg.Wait()
 			fmt.Println("The registry is now ready to initiate tasks.")
 		case "route":
+			// Show the already generated finger tables
 			for node, finger := range allFingers {
 				fmt.Printf("Node %d:", node)
 				for _, id := range finger {
@@ -73,6 +79,7 @@ func InputParser() {
 				fmt.Println()
 			}
 		case "start":
+			// Start the task
 			startWg.Add(len(nodes))
 			n, err := strconv.Atoi(fields[1])
 			if err != nil {
@@ -81,9 +88,12 @@ func InputParser() {
 			for _, addr := range nodes {
 				go NodeSend(addr, handleTask(uint32(n)))
 			}
+
+			// Wait till all functions have finished their task
 			startWg.Wait()
 
 			summaries = make(map[int32]Summary)
+			// Start requesting the summary
 			for {
 				summaryWg.Add(len(nodes))
 				for _, addr := range nodes {
@@ -91,6 +101,7 @@ func InputParser() {
 				}
 				summaryWg.Wait()
 
+				// Generate the summed up summary
 				var send uint32
 				var rec uint32
 				var rel uint32
@@ -104,6 +115,8 @@ func InputParser() {
 					recsum += summary.receiveSummation
 				}
 
+				// If all messages have been received we print them
+				// Otherwise we gonna wait for a second and try to get the summary again
 				if int(rec) == n*len(nodes) {
 					log.Println("Id,Sent,Received,Relayed,Total Sent,Total Received")
 
@@ -141,6 +154,7 @@ func InputParser() {
 }
 
 func main() {
+	// Read in the port and startup the listeners
 	hostPort := "2077"
 	if len(os.Args) > 1 {
 		hostPort = os.Args[1]
