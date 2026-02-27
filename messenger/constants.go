@@ -1,3 +1,3 @@
 package main
 
-const MAX_ID int32 = 1023
+const MAX_ID int32 = 1024

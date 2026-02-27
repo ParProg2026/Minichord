@@ -129,7 +129,7 @@ func generateId() int32 {
 		os.Exit(1)
 	}
 	for {
-		newId := rand.Int32N(MAX_ID + 1)
+		newId := rand.Int32N(MAX_ID)
 		if _, exists := nodes[newId]; !exists {
 			return newId
 		}

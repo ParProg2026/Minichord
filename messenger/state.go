@@ -16,7 +16,7 @@ var wg sync.WaitGroup
 var nodeAddr string
 var nodeID int32
 var userChan = make(chan string, 1)
-var regChan = make(chan *minichord.MiniChord, 10000)
+var comChan = make(chan *minichord.MiniChord, 100)
 
 type Finger struct {
 	Id   int32
@@ -27,7 +27,13 @@ var fingerTable []Finger
 var allNodes []int32
 
 var regConn net.Conn
-var openConnections map[int32]net.Conn
+
+type Conn struct {
+	conn net.Conn
+	lock sync.Mutex
+}
+
+var openConnections map[int32]*Conn
 
 var sendTracker atomic.Uint32
 var receiveTracker atomic.Uint32

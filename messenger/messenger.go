@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/mkyas/minichord"
 )
@@ -29,11 +30,11 @@ func RegistrySend(fn func(conn net.Conn) error) {
 }
 
 func NodeSend(id int32, fn func(conn net.Conn) error) {
-	conn := openConnections[id]
-
-	if err := fn(conn); err != nil {
+	openConnections[id].lock.Lock()
+	if err := fn(openConnections[id].conn); err != nil {
 		log.Fatal("Operation failed:", err)
 	}
+	openConnections[id].lock.Unlock()
 }
 
 func DetermineNextFinger(data *minichord.NodeData) int32 {
@@ -49,7 +50,7 @@ func DetermineNextFinger(data *minichord.NodeData) int32 {
 			id += MAX_ID
 		}
 
-		if finger.Id < dest {
+		if id < dest {
 			biggest = finger.Id
 		}
 	}
@@ -62,7 +63,7 @@ func MessageConnReceive(conn net.Conn) {
 		if err != nil {
 			return
 		}
-		regChan <- msg
+		comChan <- msg
 	}
 }
 
@@ -108,47 +109,50 @@ func Node() {
 			default:
 				log.Println("Unknown command:", userCommand)
 			}
-		case registryCommand := <-regChan:
+		case registryCommand := <-comChan:
 			switch {
 			case registryCommand.GetInitiateTask() != nil:
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
-				for range registryCommand.GetInitiateTask().Packets {
-					var dest int32
-					for {
-						dest = allNodes[rand.Int31n(int32(len(allNodes)))]
-						if dest != nodeID {
-							break
+				go func() {
+					for range registryCommand.GetInitiateTask().Packets {
+						var dest int32
+						for {
+							dest = allNodes[rand.Int31n(int32(len(allNodes)))]
+							if dest != nodeID {
+								break
+							}
 						}
-					}
-					finger := fingerTable[rand.Int31n(int32(len(fingerTable)))]
-					payload := rand.Int31()
-					msg := &minichord.MiniChord{
-						Message: &minichord.MiniChord_NodeData{
-							NodeData: &minichord.NodeData{
-								Destination: dest,
-								Source:      nodeID,
-								Payload:     payload,
-								Hops:        0,
-								Trace:       []int32{},
+						finger := fingerTable[rand.Int31n(int32(len(fingerTable)))]
+						payload := rand.Int31()
+						msg := &minichord.MiniChord{
+							Message: &minichord.MiniChord_NodeData{
+								NodeData: &minichord.NodeData{
+									Destination: dest,
+									Source:      nodeID,
+									Payload:     payload,
+									Hops:        0,
+									Trace:       []int32{},
+								},
 							},
-						},
+						}
+						sendTracker.Add(1)
+						sendSummation.Add(int64(payload))
+
+						NodeSend(finger.Id, func(conn net.Conn) error {
+							minichord.SendMiniChordMessage(conn, msg)
+							return nil
+						})
+						//time.Sleep(1 * time.Millisecond)
 					}
-					sendTracker.Add(1)
-					sendSummation.Add(int64(payload))
 
-					NodeSend(finger.Id, func(conn net.Conn) error {
-						minichord.SendMiniChordMessage(conn, msg)
-						return nil
-					})
-				}
-
-				RegistrySend(handleTaskFinished)
+					RegistrySend(handleTaskFinished)
+				}()
 
 			case registryCommand.GetNodeRegistry() != nil:
 				fingerTable = make([]Finger, 0)
 				allNodes = make([]int32, 0)
-				openConnections = make(map[int32]net.Conn) // Initialize the map
+				openConnections = make(map[int32]*Conn) // Initialize the map
 				for _, node := range registryCommand.GetNodeRegistry().Peers {
 					fingerTable = append(fingerTable, Finger{Id: node.Id, Addr: node.Address})
 					conn, err := net.Dial("tcp", node.Address)
@@ -156,7 +160,10 @@ func Node() {
 						log.Printf("Error while creating connection with node %s: %s ", node.Address, err)
 						continue // Skip adding to map if connection failed
 					}
-					openConnections[node.Id] = conn
+					openConnections[node.Id] = &Conn{
+						conn: conn,
+						lock: sync.Mutex{},
+					}
 				}
 				for _, node := range registryCommand.GetNodeRegistry().Ids {
 					allNodes = append(allNodes, node)
