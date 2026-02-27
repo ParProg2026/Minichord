@@ -13,6 +13,7 @@ import (
 	"github.com/mkyas/minichord"
 )
 
+// go routine takes inputs and passes them to the go routine in Node
 func inputParser() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -24,12 +25,14 @@ func inputParser() {
 	}
 }
 
+// Takes functions to send to the Registry, with error handling
 func RegistrySend(fn func(conn net.Conn) error) {
 	if err := fn(regConn); err != nil {
 		log.Fatal("Operation failed:", err)
 	}
 }
 
+// Takes functions to send at targeted Nodes, with error handling
 func NodeSend(id int32, fn func(conn net.Conn) error) {
 	openConnections[id].lock.Lock()
 	if err := fn(openConnections[id].conn); err != nil {
@@ -40,6 +43,7 @@ func NodeSend(id int32, fn func(conn net.Conn) error) {
 
 func DetermineNextFinger(data *minichord.NodeData) int32 {
 	dest := data.Destination
+	// Ensure we can increment forward towards the destination
 	if dest < nodeID {
 		dest += MAX_ID
 	}
@@ -47,17 +51,21 @@ func DetermineNextFinger(data *minichord.NodeData) int32 {
 	biggest := fingerTable[0].Id
 	for _, finger := range fingerTable {
 		id := finger.Id
+		// ensure IDs loop back around
 		if id < nodeID {
 			id += MAX_ID
 		}
 
+		// find latest node not greater than dest
 		if id < dest {
 			biggest = finger.Id
 		}
 	}
+	// correct for looping increase
 	return biggest % MAX_ID
 }
 
+// Collect non-user commands for Node
 func MessageConnReceive(conn net.Conn) {
 	for {
 		msg, err := minichord.ReceiveMiniChordMessage(conn)
@@ -68,6 +76,7 @@ func MessageConnReceive(conn net.Conn) {
 	}
 }
 
+// begin listening
 func MessageReceive(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -81,6 +90,7 @@ func MessageReceive(listener net.Listener) {
 }
 
 func Node() {
+	// start connection
 	defer wg.Done()
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -89,10 +99,12 @@ func Node() {
 
 	go MessageReceive(listener)
 
+	// fetch address and register
 	nodeAddr = listener.Addr().String()
 	RegistrySend(HandleRegistration)
 	log.Println("Node listening on:", nodeAddr)
 	for {
+		// handle commands
 		select {
 		case userCommand := <-userChan:
 			switch userCommand {
@@ -115,6 +127,7 @@ func Node() {
 			case registryCommand.GetInitiateTask() != nil:
 				log.Println("Task Received", registryCommand.GetInitiateTask().Packets)
 
+				// send in a separate go routine, to not block receive
 				go func() {
 					for range registryCommand.GetInitiateTask().Packets {
 						var dest int32
@@ -183,6 +196,7 @@ func Node() {
 					receiveSummation.Add(int64(data.Payload))
 				}
 
+			// send summary and reset
 			case registryCommand.GetRequestTrafficSummary() != nil:
 				RegistrySend(HandleSendSummary)
 				sendTracker.Store(0)
