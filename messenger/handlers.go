@@ -8,6 +8,7 @@ import (
 	"github.com/mkyas/minichord"
 )
 
+// Send message for registration
 func HandleRegistration(conn net.Conn) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_Registration{
@@ -39,6 +40,7 @@ func HandleRegistration(conn net.Conn) error {
 	return nil
 }
 
+// Send message for deregistration
 func HandleDeregistration(conn net.Conn) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_Deregistration{
@@ -68,6 +70,7 @@ func HandleDeregistration(conn net.Conn) error {
 	return nil
 }
 
+// Report setting up the connection to fingers
 func HandleRegistryResponse(s int32) func(net.Conn) error {
 	return func(conn net.Conn) error {
 		msg := &minichord.MiniChord{
@@ -87,6 +90,7 @@ func HandleRegistryResponse(s int32) func(net.Conn) error {
 	}
 }
 
+// Send the summary
 func HandleSendSummary(conn net.Conn) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_ReportTrafficSummary{
@@ -108,6 +112,7 @@ func HandleSendSummary(conn net.Conn) error {
 	return nil
 }
 
+// Relay package to other nodes
 func handleForwardNodeData(next int32, data *minichord.NodeData) func(net.Conn) error {
 	return func(conn net.Conn) error {
 		data.Trace = append(data.Trace, next)
@@ -127,6 +132,7 @@ func handleForwardNodeData(next int32, data *minichord.NodeData) func(net.Conn) 
 	}
 }
 
+// Report on task finished
 func handleTaskFinished(conn net.Conn) error {
 	msg := &minichord.MiniChord{
 		Message: &minichord.MiniChord_TaskFinished{

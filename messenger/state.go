@@ -18,6 +18,7 @@ var nodeID int32
 var userChan = make(chan string, 1)
 var comChan = make(chan *minichord.MiniChord, 100)
 
+// Save the fingers and the existing nodes
 type Finger struct {
 	Id   int32
 	Addr string
@@ -26,8 +27,10 @@ type Finger struct {
 var fingerTable []Finger
 var allNodes []int32
 
+// Connection to register
 var regConn net.Conn
 
+// Open connection to other fingers
 type Conn struct {
 	conn net.Conn
 	lock sync.Mutex
@@ -35,6 +38,7 @@ type Conn struct {
 
 var openConnections map[int32]*Conn
 
+// All the tracking for the summary
 var sendTracker atomic.Uint32
 var receiveTracker atomic.Uint32
 
