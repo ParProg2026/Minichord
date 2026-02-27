@@ -42,6 +42,7 @@ func sendFinger(p int32, nr uint32) func(net.Conn) error {
 		slices.Sort(ids)
 
 		fingers := make([]*minichord.Deregistration, 0, nr)
+		fingerIds := make([]int32, 0)
 		for i := range nr {
 			a := p + 1<<i%MAX_ID
 			m := ids[0]
@@ -59,7 +60,9 @@ func sendFinger(p int32, nr uint32) func(net.Conn) error {
 				Address: nodes[m],
 				Id:      m,
 			})
+			fingerIds = append(fingerIds, m)
 		}
+		allFingers[p] = fingerIds
 
 		msg := &minichord.MiniChord{
 			Message: &minichord.MiniChord_NodeRegistry{
@@ -140,6 +143,8 @@ func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 	log.Println("Detected node:", reg.Address)
 	newId := generateId()
 	nodes[newId] = reg.Address
+	// TODO check if address matches origin
+
 	resp := &minichord.MiniChord{
 		Message: &minichord.MiniChord_RegistrationResponse{
 			RegistrationResponse: &minichord.RegistrationResponse{
@@ -157,6 +162,8 @@ func handleRegistrationResponse(conn net.Conn, reg *minichord.Registration) {
 
 // handleDeregistrationResponse removes a previously registered node from the overlay.
 func handleDeregistrationResponse(conn net.Conn, dereg *minichord.Deregistration) {
+	// TODO check if was registered and if IP matches
+
 	if dereg != nil {
 		log.Println("Node:", dereg.Id, "Requests deregistration")
 		resp := &minichord.MiniChord{

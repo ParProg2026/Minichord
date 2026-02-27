@@ -23,13 +23,7 @@ func inputParser() {
 }
 
 func RegistrySend(fn func(conn net.Conn) error) {
-	conn, err := net.Dial("tcp", ":"+port)
-	if err != nil {
-		log.Fatal("Listener failed:", err)
-	}
-	defer conn.Close()
-
-	if err := fn(conn); err != nil {
+	if err := fn(regConn); err != nil {
 		log.Fatal("Operation failed:", err)
 	}
 }
@@ -129,7 +123,7 @@ func Node() {
 								Source:      nodeID,
 								Payload:     payload,
 								Hops:        0,
-								Trace:       []int32{nodeID},
+								Trace:       []int32{},
 							},
 						},
 					}
@@ -187,7 +181,14 @@ func Node() {
 }
 
 func main() {
-	log.Println("Starting registry")
+	log.Println("Starting messenger node")
+
+	conn, err := net.Dial("tcp", ":"+port)
+	if err != nil {
+		log.Fatal("Listener failed:", err)
+	}
+	regConn = conn
+
 	wg.Add(1)
 	go Node()
 	go inputParser()

@@ -52,6 +52,7 @@ func InputParser() {
 				fmt.Printf("hostname:port : %s | Id : %d\n", addr, id)
 			}
 		case "setup":
+			allFingers = make(map[int32][]int32)
 			for id, addr := range nodes {
 				n, err := strconv.Atoi(fields[1])
 				if err != nil {
@@ -60,7 +61,13 @@ func InputParser() {
 				go NodeSend(addr, sendFinger(id, uint32(n)))
 			}
 		case "route":
-			return
+			for node, finger := range allFingers {
+				fmt.Printf("Node %d:", node)
+				for _, id := range finger {
+					fmt.Printf(" %d", id)
+				}
+				fmt.Println()
+			}
 		case "start":
 			startWg.Add(len(nodes))
 			for _, addr := range nodes {
@@ -119,7 +126,7 @@ func InputParser() {
 
 func main() {
 	hostPort := "localhost:2077" // TODO: Replace with flag
-	log.Println("Starting message node")
+	log.Println("Starting registry")
 	wg.Add(1)
 	go NodeReceive(hostPort)
 	go InputParser()

@@ -26,6 +26,7 @@ type Finger struct {
 var fingerTable []Finger
 var allNodes []int32
 
+var regConn net.Conn
 var openConnections map[int32]net.Conn
 
 var sendTracker atomic.Uint32
