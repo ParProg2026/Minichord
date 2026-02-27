@@ -95,6 +95,7 @@ func InputParser() {
 
 			var send uint32
 			var rec uint32
+			var rel uint32
 			var sendsum int64
 			var recsum int64
 			for _, summary := range summaries {
@@ -108,14 +109,16 @@ func InputParser() {
 				)
 				send += summary.sendTracker
 				rec += summary.receiveTracker
+				rel += summary.relayTracker
 				sendsum += summary.sendSummation
 				recsum += summary.receiveSummation
 			}
 
 			log.Println()
-			log.Printf("%v,%v,%v,%v\n",
+			log.Printf("Sum,%v,%v,%v,%v,%v\n",
 				send,
 				rec,
+				rel,
 				sendsum,
 				recsum,
 			)
