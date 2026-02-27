@@ -8,7 +8,7 @@ import (
 	"github.com/mkyas/minichord"
 )
 
-var port = "2077" // TODO: replace with flag
+var regAddress string
 var regResponse *minichord.RegistrationResponse
 
 var wg sync.WaitGroup

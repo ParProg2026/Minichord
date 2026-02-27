@@ -189,7 +189,12 @@ func Node() {
 func main() {
 	log.Println("Starting messenger node")
 
-	conn, err := net.Dial("tcp", ":"+port)
+	regAddress = "localhost:2077"
+	if len(os.Args) > 1 {
+		regAddress = os.Args[1]
+	}
+
+	conn, err := net.Dial("tcp", regAddress)
 	if err != nil {
 		log.Fatal("Listener failed:", err)
 	}

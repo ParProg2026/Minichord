@@ -12,7 +12,7 @@ import (
 )
 
 func NodeReceive(hostPort string) {
-	listener, err := net.Listen("tcp", hostPort)
+	listener, err := net.Listen("tcp", ":"+hostPort)
 	if err != nil {
 		log.Fatal("listener failed:", err)
 	}
@@ -129,7 +129,11 @@ func InputParser() {
 }
 
 func main() {
-	hostPort := "localhost:2077" // TODO: Replace with flag
+	hostPort := "2077"
+	if len(os.Args) > 1 {
+		hostPort = os.Args[1]
+	}
+
 	log.Println("Starting registry")
 	wg.Add(1)
 	go NodeReceive(hostPort)
