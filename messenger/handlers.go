@@ -92,11 +92,11 @@ func HandleSendSummary(conn net.Conn) error {
 		Message: &minichord.MiniChord_ReportTrafficSummary{
 			ReportTrafficSummary: &minichord.TrafficSummary{
 				Id:            nodeID,
-				Sent:          sendTracker.Load(),
-				Received:      receiveTracker.Load(),
-				Relayed:       relayTracker.Load(),
-				TotalSent:     sendSummation.Load(),
-				TotalReceived: receiveSummation.Load(),
+				Sent:          sendTracker.Swap(0),
+				Received:      receiveTracker.Swap(0),
+				Relayed:       relayTracker.Swap(0),
+				TotalSent:     sendSummation.Swap(0),
+				TotalReceived: receiveSummation.Swap(0),
 			},
 		},
 	}

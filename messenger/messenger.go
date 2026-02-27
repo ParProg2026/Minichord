@@ -199,11 +199,6 @@ func Node() {
 			// send summary and reset
 			case registryCommand.GetRequestTrafficSummary() != nil:
 				RegistrySend(HandleSendSummary)
-				sendTracker.Store(0)
-				receiveTracker.Store(0)
-				relayTracker.Store(0)
-				sendSummation.Store(0)
-				receiveSummation.Store(0)
 			}
 		}
 	}
