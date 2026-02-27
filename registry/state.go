@@ -24,4 +24,4 @@ type Summary struct {
 	receiveSummation int64
 }
 
-var summaries []Summary
+var summaries map[int32]Summary

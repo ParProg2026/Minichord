@@ -106,14 +106,16 @@ func handleConnection(conn net.Conn) {
 		case msg.GetReportTrafficSummary() != nil:
 			summary := msg.GetReportTrafficSummary()
 
-			summaries = append(summaries, Summary{
-				id:               summary.Id,
-				sendTracker:      summary.Sent,
-				receiveTracker:   summary.Received,
-				relayTracker:     summary.Relayed,
-				sendSummation:    summary.TotalSent,
-				receiveSummation: summary.TotalReceived,
-			})
+			ex := summaries[summary.Id]
+
+			summaries[summary.Id] = Summary{
+				id:               summary.Id + ex.id,
+				sendTracker:      summary.Sent + ex.sendTracker,
+				receiveTracker:   summary.Received + ex.receiveTracker,
+				relayTracker:     summary.Relayed + ex.relayTracker,
+				sendSummation:    summary.TotalSent + ex.sendSummation,
+				receiveSummation: summary.TotalReceived + ex.receiveSummation,
+			}
 			summaryWg.Done()
 		default:
 			log.Printf("Unexpected Message type: %T\n", msg.GetMessage())

@@ -74,54 +74,63 @@ func InputParser() {
 			}
 		case "start":
 			startWg.Add(len(nodes))
+			n, err := strconv.Atoi(fields[1])
+			if err != nil {
+				log.Println("Invalid argument:", fields[1])
+			}
 			for _, addr := range nodes {
-				n, err := strconv.Atoi(fields[1])
-				if err != nil {
-					log.Println("Invalid argument:", fields[1])
-				}
 				go NodeSend(addr, handleTask(uint32(n)))
 			}
 			startWg.Wait()
-			time.Sleep(2 * time.Second)
 
-			summaries = make([]Summary, 0)
-			summaryWg.Add(len(nodes))
-			for _, addr := range nodes {
-				go NodeSend(addr, handleTrafficSummary())
+			summaries = make(map[int32]Summary)
+			for {
+				summaryWg.Add(len(nodes))
+				for _, addr := range nodes {
+					go NodeSend(addr, handleTrafficSummary())
+				}
+				summaryWg.Wait()
+
+				var send uint32
+				var rec uint32
+				var rel uint32
+				var sendsum int64
+				var recsum int64
+				for _, summary := range summaries {
+					send += summary.sendTracker
+					rec += summary.receiveTracker
+					rel += summary.relayTracker
+					sendsum += summary.sendSummation
+					recsum += summary.receiveSummation
+				}
+
+				if int(rec) == n*len(nodes) {
+					log.Println("Id,Sent,Received,Relayed,Total Sent,Total Received")
+
+					for _, summary := range summaries {
+						log.Printf("%v,%v,%v,%v,%v,%v\n",
+							summary.id,
+							summary.sendTracker,
+							summary.receiveTracker,
+							summary.relayTracker,
+							summary.sendSummation,
+							summary.receiveSummation,
+						)
+					}
+
+					log.Println()
+					log.Printf("Sum,%v,%v,%v,%v,%v\n",
+						send,
+						rec,
+						rel,
+						sendsum,
+						recsum,
+					)
+
+					break
+				}
+				time.Sleep(1 * time.Second)
 			}
-			summaryWg.Wait()
-
-			log.Println("Id,Sent,Received,Relayed,Total Sent,Total Received")
-
-			var send uint32
-			var rec uint32
-			var rel uint32
-			var sendsum int64
-			var recsum int64
-			for _, summary := range summaries {
-				log.Printf("%v,%v,%v,%v,%v,%v\n",
-					summary.id,
-					summary.sendTracker,
-					summary.receiveTracker,
-					summary.relayTracker,
-					summary.sendSummation,
-					summary.receiveSummation,
-				)
-				send += summary.sendTracker
-				rec += summary.receiveTracker
-				rel += summary.relayTracker
-				sendsum += summary.sendSummation
-				recsum += summary.receiveSummation
-			}
-
-			log.Println()
-			log.Printf("Sum,%v,%v,%v,%v,%v\n",
-				send,
-				rec,
-				rel,
-				sendsum,
-				recsum,
-			)
 		case "exit":
 			wg.Done()
 			return
